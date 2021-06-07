@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bitforex Transaction To CSV</title>
+</head>
+<body>
+<h1 style="color: red;">THIS SITE IS HOSTED ON GITHUB YOU CAN SEE ALL THE CODE, NONE OF YOUR DATA WILL BE STORED IT IS ALL DONE IN THE BROWSER</h1>
+<a href="https://github.com/hashn3rd/bitforex-transactions-json-to-csv-tool">https://github.com/hashn3rd/bitforex-transactions-json-to-csv-tool</a>
+<h1>Bitforex Transaction JSON to CSV</h1>
+<p>This site is intended to help you download your bitforex transaction data since no option to download is provided.</p>
+<h2>Getting the data</h2>
+<p>You can use the private bitforex api that is used to display your order history page to download your bitforex transactions as json</p>
+<p>YOU MUST BE LOGGED INTO BITFOREX FOR THIS TO WORK</p>
+<code>
+    https://www.bitforex.com/server/cointrade.act?cmd=getCompleteOrders&orderstate=6&busitype=coin-usdt-omi&size=100&page=1
+</code>
+<p>If you need more results, you can increase size=100 past the value 100</p>
+<p>If changing size doesn't give you all the results you need you can change page to another number</p>
+<p>If you need other coins you can chain busitype=coin-usdt-omi to usdt-btc or btc-eth etc</p>
+<p>Once you have the data you can use the form below to convert it</p>
+<h2>JSON to CSV</h2>
+<textarea rows="20" cols="50" id="in"></textarea>
+<button id="convert">Convert</button>
+<textarea rows="20" cols="50" id="out"></textarea>
+<script>
+    function getStatus(status) {
+        switch (status) {
+            case 0:
+                return 'not closed';
+            case 1:
+                return 'partial transaction';
+            case 2:
+                return 'completed';
+            case 3:
+                return 'partial canceled';
+            case 4:
+                return 'all revoked';
+        }
+    }
+
+    function formatTransaction(transaction) {
+        return {
+            orderid: transaction.orderid,
+            symbol: transaction.busitype,
+            total: transaction.dealAmount,
+            fee: transaction.tradeFee,
+            type: transaction.tradeType === 1 ? 'buy' : 'sell',
+            amount: transaction.orderAmount,
+            price: transaction.orderPrice,
+            transaction_created: new Date(transaction.createTime),
+            transaction_completed: new Date(transaction.endTime),
+            status: getStatus(transaction.orderState),
+        }
+    }
+
+    function extractData(transactions) {
+        const {data} = transactions;
+        return data.map(e => formatTransaction(e));
+    }
+
+    function generateCSVRow(transaction) {
+        return [
+            transaction.orderid,
+            transaction.transaction_created,
+            transaction.transaction_completed,
+            transaction.symbol,
+            transaction.type,
+            transaction.amount,
+            transaction.price,
+            transaction.fee,
+            transaction.total,
+            transaction.status
+        ];
+    }
+
+    const HEADERS = [
+        'Order Id',
+        'Date Created',
+        'Date Completed',
+        'Symbol',
+        'Type',
+        'Amount',
+        'Price',
+        'Fee',
+        'Total',
+        'Status'
+    ];
+
+    function generateCSV(transactions) {
+        const out = [HEADERS.join(',')];
+        for(const transaction of transactions) {
+            out.push(generateCSVRow(transaction).join(','));
+        }
+        return out.join('\n');
+    }
+
+    // generateCSV(extractData(data))
+
+    const input = document.getElementById('in');
+    const convert = document.getElementById('convert');
+    const out = document.getElementById('out');
+
+    convert.addEventListener('click', e => {
+        console.log(input.value);
+        const json = JSON.parse(input.value);
+
+        out.value = generateCSV(extractData(json));
+    });
+</script>
+</body>
+</html>
